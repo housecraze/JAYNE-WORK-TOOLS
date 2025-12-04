@@ -774,6 +774,8 @@ async function refreshAndOpen() {
   let currentIp = '';
   let previousIP = userIP;
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);  // Detect iOS devices
+
   try {
     // Get current IP first (always)
     const ipRes = await fetch('https://api.ipify.org?format=json');
@@ -786,26 +788,17 @@ async function refreshAndOpen() {
     userIP = currentIp;
     document.getElementById("ip").textContent = currentIp;
 
-    // Open or update the Scamalytics window with the current IP
-    if (!scamalyticsWindow || scamalyticsWindow.closed) {
-      // Open the Scamalytics tab if it's not open
-      scamalyticsWindow = window.open(`https://scamalytics.com/ip/${currentIp}`, '_blank');
+    // On iOS, open a new tab immediately (to avoid restrictions with focus/URL updates)
+    if (isIOS) {
+      window.open(`https://scamalytics.com/ip/${currentIp}`, "_blank");  // Open a new tab immediately
     } else {
-      // Update the URL and focus the window if it's already open
-      const url = `https://scamalytics.com/ip/${currentIp}`;
-      scamalyticsWindow.location.href = url;
-      scamalyticsWindow.focus();  // Attempt to focus on the existing tab
-    }
-
-    // Update the button state
-    if (previousIP && previousIP === userIP) {
-      btn.style.backgroundColor = "#d32f2f";
-      btn.style.color = "white";
-      btn.innerHTML = "No Change Refresh";
-    } else {
-      btn.style.backgroundColor = "#2e7d32";
-      btn.style.color = "white";
-      btn.innerHTML = "Changed! Refresh";
+      // For Android/desktop, reuse the existing window/tab if it's already open
+      if (!scamalyticsWindow || scamalyticsWindow.closed) {
+        scamalyticsWindow = window.open(`https://scamalytics.com/ip/${currentIp}`, '_blank');
+      } else {
+        scamalyticsWindow.location.href = `https://scamalytics.com/ip/${currentIp}`;
+        scamalyticsWindow.focus();
+      }
     }
 
     const username = localStorage.getItem('fraudUser') || '';
@@ -861,8 +854,7 @@ async function refreshAndOpen() {
     fraudBox.style.borderColor = "#f33";
     btn.style.background = "#c33";
     btn.innerHTML = "Error";
-    // Temporarily remove the popup here
-    // showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
+    showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
 
   } finally {
     setTimeout(() => {
@@ -878,6 +870,7 @@ async function refreshAndOpen() {
     }, 1600);
   }
 }
+
 
 
 
@@ -1069,4 +1062,5 @@ getBalance();
   </script>
 </body>
 </html>
+
 
