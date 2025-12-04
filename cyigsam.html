@@ -707,28 +707,27 @@
     setInterval(update, 1000);
     update();
 
+
 let userIP = '';
 let isLocked = true;
 
 // Load saved API config on start
 document.addEventListener('DOMContentLoaded', () => {
   const savedUser = localStorage.getItem('fraudUser');
-  const savedKey  = localStorage.getItem('fraudKey');
+  const savedKey = localStorage.getItem('fraudKey');
   if (savedUser) document.getElementById('cfgUsername').value = savedUser;
-  if (savedKey)  document.getElementById('cfgKey').value  = savedKey;
+  if (savedKey) document.getElementById('cfgKey').value = savedKey;
 });
 
 // Unlock / Lock toggle
 function toggleLock() {
   isLocked = !isLocked;
   const userInput = document.getElementById('cfgUsername');
-  const keyInput  = document.getElementById('cfgKey');
-  const lockBtn   = document.getElementById('lockBtn');
-  const lockIcon  = document.getElementById('lockIcon');
-
+  const keyInput = document.getElementById('cfgKey');
+  const lockBtn = document.getElementById('lockBtn');
+  const lockIcon = document.getElementById('lockIcon');
   userInput.disabled = isLocked;
-  keyInput.disabled  = isLocked;
-
+  keyInput.disabled = isLocked;
   if (isLocked) {
     lockBtn.textContent = 'Unlock';
     lockBtn.style.background = '#c2185b';
@@ -745,38 +744,40 @@ function toggleLock() {
 // Save config + auto-lock
 function saveApiConfig() {
   const user = document.getElementById('cfgUsername').value.trim();
-  const key  = document.getElementById('cfgKey').value.trim();
-
+  const key = document.getElementById('cfgKey').value.trim();
   if (!user || !key) {
     showPopup('Both fields required!', '#f44336');
     return;
   }
-
   localStorage.setItem('fraudUser', user);
-  localStorage.setItem('fraudKey',  key);
+  localStorage.setItem('fraudKey', key);
   isLocked = true;
   toggleLock();
   showPopup('API Saved & Locked', '#0f9');
 }
 
-// Your FULL original refreshAndOpen() – only tiny safe additions
+// Your FULL original refreshAndOpen() – only tiny safe fix for mobile
 async function refreshAndOpen() {
   const btn = document.getElementById("refreshBtn");
   const fraudBox = document.getElementById("fraudBox");
   const fraudScoreEl = document.getElementById("fraudScore");
   const fraudRiskEl = document.getElementById("fraudRisk");
   const oldText = btn.innerHTML;
+
   btn.disabled = true;
   btn.innerHTML = "Checking...";
   fraudScoreEl.textContent = "...";
   fraudRiskEl.textContent = "Loading";
   fraudBox.style.background = "rgba(30,10,10,0.95)";
 
+  let openPublicPage = false;        // ← only new variable added
+  let currentIp = '';                // ← to store IP safely
+
   try {
     // Get current IP first (always)
     const ipRes = await fetch('https://api.ipify.org?format=json');
     const ipData = await ipRes.json();
-    const currentIp = ipData.ip;
+    currentIp = ipData.ip;
 
     if (userIP && userIP !== currentIp) {
       document.getElementById("oldIP").textContent = userIP;
@@ -787,7 +788,7 @@ async function refreshAndOpen() {
     const username = localStorage.getItem('fraudUser') || '';
     const key = localStorage.getItem('fraudKey') || '';
 
-    // If no credentials at all → open public page
+    // If no credentials at all → treat as error (will open public page)
     if (!username || !key || username === '' || key === '') {
       throw new Error("No credentials");
     }
@@ -795,8 +796,8 @@ async function refreshAndOpen() {
     const apiUrl = `https://api11.scamalytics.com/v3/${username}?key=${key}&ip=${currentIp}&format=json`;
     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
     const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error("API error");
 
+    if (!response.ok) throw new Error("API error");
     const data = await response.json();
 
     // Detect out of credits / invalid key / any error
@@ -804,7 +805,7 @@ async function refreshAndOpen() {
       throw new Error("Scamalytics error");
     }
 
-    // SUCCESS — normal flow
+    // SUCCESS — normal flow (exactly like your original)
     const score = data.scamalytics.scamalytics_score;
     const risk = data.scamalytics.scamalytics_risk || "Unknown";
     const creditsLeft = data.scamalytics.credits?.remaining ?? "N/A";
@@ -829,21 +830,28 @@ async function refreshAndOpen() {
     btn.innerHTML = "Updated";
 
   } catch (err) {
-    // ANY error (no key, out of credits, network, invalid key) → open public page with YOUR IP
+    // ANY error → we will open public page after button is re-enabled
+    openPublicPage = true;
+
     fraudScoreEl.textContent = "!";
     fraudRiskEl.innerHTML = "No credits<br>or bad key";
     fraudBox.style.background = "rgba(90,0,0,0.95)";
     fraudBox.style.borderColor = "#f33";
     btn.style.background = "#c33";
     btn.innerHTML = "Error";
-
     showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
-    window.open(`https://scamalytics.com/ip/${userIP || currentIp}`, "_blank");
+
   } finally {
     setTimeout(() => {
       btn.disabled = false;
       btn.innerHTML = oldText;
       btn.style.background = "";
+
+      // Mobile-safe: open tab here (still in user-initiated call stack)
+      if (openPublicPage) {
+        const ipToUse = userIP || currentIp;
+        window.open(`https://scamalytics.com/ip/${ipToUse}`, "_blank");
+      }
     }, 1600);
   }
 }
@@ -1059,4 +1067,5 @@ getBalance();
     loadProfiles();
   </script>
 </body>
+
 </html>
