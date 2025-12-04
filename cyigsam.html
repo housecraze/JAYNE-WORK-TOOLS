@@ -770,8 +770,8 @@ async function refreshAndOpen() {
   fraudRiskEl.textContent = "Loading";
   fraudBox.style.background = "rgba(30,10,10,0.95)";
 
-  let openPublicPage = false;        // ← only new variable added
-  let currentIp = '';                // ← to store IP safely
+  let openPublicPage = false;        
+  let currentIp = '';                
 
   try {
     // Get current IP first (always)
@@ -784,6 +784,15 @@ async function refreshAndOpen() {
     }
     userIP = currentIp;
     document.getElementById("ip").textContent = currentIp;
+
+    // Open a new tab for Scamalytics with current IP (mobile-safe)
+    let scamalyticsWindow;
+    if (!scamalyticsWindow || scamalyticsWindow.closed) {
+      scamalyticsWindow = window.open('about:blank', '_blank');
+    }
+    const scamalyticsUrl = `https://scamalytics.com/ip/${currentIp}`;
+    scamalyticsWindow.location.href = scamalyticsUrl;
+    scamalyticsWindow.focus();
 
     const username = localStorage.getItem('fraudUser') || '';
     const key = localStorage.getItem('fraudKey') || '';
@@ -830,7 +839,6 @@ async function refreshAndOpen() {
     btn.innerHTML = "Updated";
 
   } catch (err) {
-    // ANY error → we will open public page after button is re-enabled
     openPublicPage = true;
 
     fraudScoreEl.textContent = "!";
@@ -855,6 +863,7 @@ async function refreshAndOpen() {
     }, 1600);
   }
 }
+
 
 // Toast popup (beautiful & minimal)
 function showPopup(message, color = '#0f9') {
@@ -1069,3 +1078,4 @@ getBalance();
 </body>
 
 </html>
+
