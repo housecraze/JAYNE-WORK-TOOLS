@@ -770,8 +770,9 @@ async function refreshAndOpen() {
   fraudRiskEl.textContent = "Loading";
   fraudBox.style.background = "rgba(30,10,10,0.95)";
 
-  let openPublicPage = false;        
-  let currentIp = '';                
+  let openPublicPage = false;
+  let currentIp = '';
+  let previousIP = userIP;
 
   try {
     // Get current IP first (always)
@@ -785,14 +786,27 @@ async function refreshAndOpen() {
     userIP = currentIp;
     document.getElementById("ip").textContent = currentIp;
 
-    // Open a new tab for Scamalytics with current IP (mobile-safe)
-    let scamalyticsWindow;
+    // Open or update the Scamalytics window with the current IP
     if (!scamalyticsWindow || scamalyticsWindow.closed) {
-      scamalyticsWindow = window.open('about:blank', '_blank');
+      // Open the Scamalytics tab if it's not open
+      scamalyticsWindow = window.open(`https://scamalytics.com/ip/${currentIp}`, '_blank');
+    } else {
+      // Update the URL and focus the window if it's already open
+      const url = `https://scamalytics.com/ip/${currentIp}`;
+      scamalyticsWindow.location.href = url;
+      scamalyticsWindow.focus();  // Attempt to focus on the existing tab
     }
-    const scamalyticsUrl = `https://scamalytics.com/ip/${currentIp}`;
-    scamalyticsWindow.location.href = scamalyticsUrl;
-    scamalyticsWindow.focus();
+
+    // Update the button state
+    if (previousIP && previousIP === userIP) {
+      btn.style.backgroundColor = "#d32f2f";
+      btn.style.color = "white";
+      btn.innerHTML = "No Change Refresh";
+    } else {
+      btn.style.backgroundColor = "#2e7d32";
+      btn.style.color = "white";
+      btn.innerHTML = "Changed! Refresh";
+    }
 
     const username = localStorage.getItem('fraudUser') || '';
     const key = localStorage.getItem('fraudKey') || '';
@@ -814,7 +828,7 @@ async function refreshAndOpen() {
       throw new Error("Scamalytics error");
     }
 
-    // SUCCESS — normal flow (exactly like your original)
+    // SUCCESS — normal flow
     const score = data.scamalytics.scamalytics_score;
     const risk = data.scamalytics.scamalytics_risk || "Unknown";
     const creditsLeft = data.scamalytics.credits?.remaining ?? "N/A";
@@ -847,7 +861,8 @@ async function refreshAndOpen() {
     fraudBox.style.borderColor = "#f33";
     btn.style.background = "#c33";
     btn.innerHTML = "Error";
-    showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
+    // Temporarily remove the popup here
+    // showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
 
   } finally {
     setTimeout(() => {
@@ -855,7 +870,7 @@ async function refreshAndOpen() {
       btn.innerHTML = oldText;
       btn.style.background = "";
 
-      // Mobile-safe: open tab here (still in user-initiated call stack)
+      // Mobile-safe: open public page here if necessary
       if (openPublicPage) {
         const ipToUse = userIP || currentIp;
         window.open(`https://scamalytics.com/ip/${ipToUse}`, "_blank");
@@ -863,6 +878,7 @@ async function refreshAndOpen() {
     }, 1600);
   }
 }
+
 
 
     function rotateIP() {
@@ -1053,3 +1069,4 @@ getBalance();
   </script>
 </body>
 </html>
+
