@@ -458,7 +458,7 @@
  
     async function loadProfiles() {
       try {
-        const realAPI = "https://script.google.com/macros/s/AKfycbyfgcchDH1X4gyP0AWFGF57_D2Be8IjnmOebtdae8uSzJycfX_ubWSLWnHbT35Hm8wIAg/exec";
+        const realAPI = "https://script.google.com/macros/s/AKfycbxffaHggaHep3e604HRD0n_5ppFkJHkihsdP0mRhlsnU3iGUER7OafbC-Jbeya5z2wV/exec";
         const API_URL = realAPI;
         const res = await fetch(API_URL);
         profiles = await res.json();
@@ -770,9 +770,8 @@ async function refreshAndOpen() {
   fraudRiskEl.textContent = "Loading";
   fraudBox.style.background = "rgba(30,10,10,0.95)";
 
-  let openPublicPage = false;
+  let openPublicPage = false;        
   let currentIp = '';                
-  let previousIP = userIP;          // Save previous IP
 
   try {
     // Get current IP first (always)
@@ -786,24 +785,14 @@ async function refreshAndOpen() {
     userIP = currentIp;
     document.getElementById("ip").textContent = currentIp;
 
-    // Open the Scamalytics tab or update the location
+    // Open a new tab for Scamalytics with current IP (mobile-safe)
+    let scamalyticsWindow;
     if (!scamalyticsWindow || scamalyticsWindow.closed) {
       scamalyticsWindow = window.open('about:blank', '_blank');
     }
-    const scamalyticsUrl = `https://scamalytics.com/ip/${userIP}`;
-    scamalyticsWindow.location.href = scamalyticsUrl;  // Change the URL to the current IP
-    scamalyticsWindow.focus();  // Focus on the Scamalytics tab
-
-    // Update the button state
-    if (previousIP && previousIP === userIP) {
-      btn.style.backgroundColor = "#d32f2f";
-      btn.style.color = "white";
-      btn.innerHTML = "No Change Refresh";
-    } else {
-      btn.style.backgroundColor = "#2e7d32";
-      btn.style.color = "white";
-      btn.innerHTML = "Changed! Refresh";
-    }
+    const scamalyticsUrl = `https://scamalytics.com/ip/${currentIp}`;
+    scamalyticsWindow.location.href = scamalyticsUrl;
+    scamalyticsWindow.focus();
 
     const username = localStorage.getItem('fraudUser') || '';
     const key = localStorage.getItem('fraudKey') || '';
@@ -858,7 +847,7 @@ async function refreshAndOpen() {
     fraudBox.style.borderColor = "#f33";
     btn.style.background = "#c33";
     btn.innerHTML = "Error";
-    //showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
+    showPopup("Out of credits or bad key<br>Opening public page...", "#ff5722");
 
   } finally {
     setTimeout(() => {
@@ -866,7 +855,7 @@ async function refreshAndOpen() {
       btn.innerHTML = oldText;
       btn.style.background = "";
 
-      // Mobile-safe: open public page here if necessary (still in user-initiated call stack)
+      // Mobile-safe: open tab here (still in user-initiated call stack)
       if (openPublicPage) {
         const ipToUse = userIP || currentIp;
         window.open(`https://scamalytics.com/ip/${ipToUse}`, "_blank");
@@ -875,31 +864,6 @@ async function refreshAndOpen() {
   }
 }
 
-
-
-// Toast popup (beautiful & minimal)
-function showPopup(message, color = '#0f9') {
-  let popup = document.getElementById('fraudToast');
-  if (!popup) {
-    popup = document.createElement('div');
-    popup.id = 'fraudToast';
-    document.body.appendChild(popup);
-    const style = document.createElement('style');
-    style.textContent = `
-      #fraudToast{position:fixed;top:20px;left:50%;transform:translateX(-50%);
-        background:rgba(0,0,0,0.94);color:#fff;padding:10px 20px;border-radius:10px;
-        font-size:11.5px;font-weight:bold;z-index:9999;border:2px solid ${color};
-        box-shadow:0 0 18px ${color}80;animation:pop 3.4s forwards;}
-      @keyframes pop{0%,100%{opacity:0;transform:translateX(-50%) translateY(-20px)}
-        15%,85%{opacity:1;transform:translateX(-50%) translateY(0)}}
-    `;
-    document.head.appendChild(style);
-  }
-  popup.innerHTML = message;
-  popup.style.borderColor = color;
-  popup.style.boxShadow = `0 0 18px ${color}80`;
-  setTimeout(() => popup.remove(), 3400);
-}
 
     function rotateIP() {
       const btn = document.getElementById("rotateBtn");
@@ -1088,8 +1052,4 @@ getBalance();
     loadProfiles();
   </script>
 </body>
-
 </html>
-
-
-
