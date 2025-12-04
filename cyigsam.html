@@ -770,8 +770,9 @@ async function refreshAndOpen() {
   fraudRiskEl.textContent = "Loading";
   fraudBox.style.background = "rgba(30,10,10,0.95)";
 
-  let openPublicPage = false;        
+  let openPublicPage = false;
   let currentIp = '';                
+  let previousIP = userIP;          // Save previous IP
 
   try {
     // Get current IP first (always)
@@ -785,14 +786,24 @@ async function refreshAndOpen() {
     userIP = currentIp;
     document.getElementById("ip").textContent = currentIp;
 
-    // Open a new tab for Scamalytics with current IP (mobile-safe)
-    let scamalyticsWindow;
+    // Open the Scamalytics tab or update the location
     if (!scamalyticsWindow || scamalyticsWindow.closed) {
       scamalyticsWindow = window.open('about:blank', '_blank');
     }
-    const scamalyticsUrl = `https://scamalytics.com/ip/${currentIp}`;
-    scamalyticsWindow.location.href = scamalyticsUrl;
-    scamalyticsWindow.focus();
+    const scamalyticsUrl = `https://scamalytics.com/ip/${userIP}`;
+    scamalyticsWindow.location.href = scamalyticsUrl;  // Change the URL to the current IP
+    scamalyticsWindow.focus();  // Focus on the Scamalytics tab
+
+    // Update the button state
+    if (previousIP && previousIP === userIP) {
+      btn.style.backgroundColor = "#d32f2f";
+      btn.style.color = "white";
+      btn.innerHTML = "No Change Refresh";
+    } else {
+      btn.style.backgroundColor = "#2e7d32";
+      btn.style.color = "white";
+      btn.innerHTML = "Changed! Refresh";
+    }
 
     const username = localStorage.getItem('fraudUser') || '';
     const key = localStorage.getItem('fraudKey') || '';
@@ -855,7 +866,7 @@ async function refreshAndOpen() {
       btn.innerHTML = oldText;
       btn.style.background = "";
 
-      // Mobile-safe: open tab here (still in user-initiated call stack)
+      // Mobile-safe: open public page here if necessary (still in user-initiated call stack)
       if (openPublicPage) {
         const ipToUse = userIP || currentIp;
         window.open(`https://scamalytics.com/ip/${ipToUse}`, "_blank");
@@ -863,6 +874,7 @@ async function refreshAndOpen() {
     }, 1600);
   }
 }
+
 
 
 // Toast popup (beautiful & minimal)
@@ -1078,4 +1090,5 @@ getBalance();
 </body>
 
 </html>
+
 
